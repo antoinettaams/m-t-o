@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Météo 5 Étoiles</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
+
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background: linear-gradient(135deg, #06b6d4 0%, #10b981 100%);
+      min-height: 100vh;
+    }
+
+    .glass {
+      backdrop-filter: blur(16px) saturate(180%);
+      -webkit-backdrop-filter: blur(16px) saturate(180%);
+      background-color: rgba(255, 255, 255, 0.15);
+      border-radius: 12px;
+      border: 1px solid rgba(209, 213, 219, 0.3);
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .weather-entry { animation: fadeIn 0.5s ease-out; }
+
+    .rotate { animation: spin 1s linear infinite; }
+
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body class="flex items-center justify-center p-4">
+  <div class="container mx-auto px-4 max-w-4xl sm:max-w-3xl md:max-w-2xl">
+
+    <!-- En-tête -->
+    <header class="mb-8 text-center weather-entry">
+      <h1 class="text-4xl font-bold text-white mb-2">
+        <i class="fas fa-cloud-sun mr-2"></i>ClimaApp
+      </h1>
+      <p class="text-white/80">Découvrez la météo en temps réel</p>
+    </header>
+
+    <!-- Barre de recherche -->
+    <div class="weather-entry">
+      <form id="search-form" class="glass p-4 rounded-xl mb-4 flex flex-col sm:flex-row gap-4">
+        <input
+          type="text"
+          id="city-input"
+          placeholder="Rechercher une ville..."
+          class="flex-grow min-w-[200px] bg-transparent text-white placeholder-white/60 focus:outline-none px-4 py-2"
+        />
+        <button
+          id="search-btn"
+          type="submit"
+          class="bg-white/20 hover:bg-white/30 text-white px-6 py-2 rounded-lg transition-colors flex items-center justify-center min-w-[120px]"
+        >
+          <i class="fas fa-search mr-2"></i>Rechercher
+        </button>
+      </form>
+
+      <button
+        id="location-btn"
+        class="glass text-white px-4 py-2 rounded-lg mb-6 flex items-center gap-2 hover:bg-white/20 transition-colors w-full justify-center"
+      >
+        <i class="fas fa-location-crosshairs"></i>
+        Utiliser ma position
+      </button>
+    </div>
+
+    <div id="error-display" class="hidden bg-red-500/80 text-white p-4 rounded-xl mb-6 weather-entry">
+      <i class="fas fa-exclamation-circle mr-2"></i>
+      <span class="error-message"></span>
+    </div>
+
+    <div id="loader" class="hidden flex justify-center items-center py-12 weather-entry">
+      <i class="fas fa-circle-notch rotate text-4xl text-white"></i>
+    </div>
+
+    <!-- Affichage météo -->
+    <div id="weather-display" class="weather-entry"></div>
+  </div>
+
+  <script>
+    const config = {
+      API_KEY: '56d716d8c807ca71cc6e2b9fbfc121f1',
+      BASE_URL: 'https://api.openweathermap.org/data/2.5/weather',
+      ICON_URL: 'https://openweathermap.org/img/wn/',
+      DEFAULT_CITY: 'Bénin'
+    };
+
+    const dom = {
+      searchForm: document.getElementById('search-form'),
+      cityInput: document.getElementById('city-input'),
+      searchBtn: document.getElementById('search-btn'),
+      weatherDisplay: document.getElementById('weather-display'),
+      errorDisplay: document.getElementById('error-display'),
+      loader: document.getElementById('loader'),
+      locationBtn: document.getElementById('location-btn')
+    };
+
+    const weatherIcons = {
+      Clear: 'fa-sun',
+      Clouds: 'fa-cloud',
+      Rain: 'fa-cloud-rain',
+      Drizzle: 'fa-cloud-showers-heavy',
+      Thunderstorm: 'fa-bolt',
+      Snow: 'fa-snowflake',
+      Mist: 'fa-smog',
+      Fog: 'fa-smog',
+      Smoke: 'fa-smog',
+      Haze: 'fa-smog',
+      Dust: 'fa-smog',
+      Sand: 'fa-smog',
+      Ash: 'fa-smog',
+      Squall: 'fa-wind',
+      Tornado: 'fa-tornado'
+    };
+
+    const formatDateTime = () => {
+      const now = new Date();
+      return now.toLocaleDateString('fr-FR', {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    };
+
+    const displayWeather = (data) => {
+      const { name, main, weather, wind, sys } = data;
+      const iconClass = weatherIcons[weather[0].main] || 'fa-cloud';
+      const iconUrl = `${config.ICON_URL}${weather[0].icon}@2x.png`;
+
+      dom.weatherDisplay.innerHTML = `
+        <div class="glass p-6 rounded-xl w-full max-w-3xl mx-auto">
+          <div class="flex justify-between items-start mb-4 flex-wrap gap-4">
+            <div>
+              <h2 class="text-2xl font-bold">
+                <i class="fas fa-city mr-2 opacity-70"></i>
+                ${name}, ${sys.country}
+              </h2>
+              <p class="text-sm opacity-80 mt-1">
+                <i class="far fa-clock mr-1"></i>
+                ${formatDateTime()}
+              </p>
+            </div>
+            <img src="${iconUrl}" alt="${weather[0].description}" class="w-16 h-16">
+          </div>
+
+          <div class="flex flex-col sm:flex-row items-center justify-between mb-6 gap-4">
+            <div class="flex items-center">
+              <i class="fas ${iconClass} text-4xl mr-3 opacity-90"></i>
+              <div>
+                <div class="text-5xl font-bold flex items-center">
+                  <i class="fas fa-temperature-three-quarters text-3xl mr-2 opacity-80"></i>
+                  ${Math.round(main.temp)}°C
+                </div>
+                <div class="text-lg capitalize mt-1">${weather[0].description}</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div class="glass p-3 rounded-lg flex items-center">
+              <i class="fas fa-droplet text-lg mr-3 opacity-70"></i>
+              <div>
+                <div class="text-xs opacity-70">Humidité</div>
+                <div class="text-xl">${main.humidity}%</div>
+              </div>
+            </div>
+
+            <div class="glass p-3 rounded-lg flex items-center">
+              <i class="fas fa-wind text-lg mr-3 opacity-70"></i>
+              <div>
+                <div class="text-xs opacity-70">Vent</div>
+                <div class="text-xl">${Math.round(wind.speed * 3.6)} km/h</div>
+              </div>
+            </div>
+
+            <div class="glass p-3 rounded-lg flex items-center">
+              <i class="fas fa-gauge-high text-lg mr-3 opacity-70"></i>
+              <div>
+                <div class="text-xs opacity-70">Pression</div>
+                <div class="text-xl">${main.pressure} hPa</div>
+              </div>
+            </div>
+
+            <div class="glass p-3 rounded-lg flex items-center">
+              <i class="fas fa-person-rays text-lg mr-3 opacity-70"></i>
+              <div>
+                <div class="text-xs opacity-70">Ressenti</div>
+                <div class="text-xl">${Math.round(main.feels_like)}°C</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    };
+
+    const showError = (message) => {
+      dom.errorDisplay.querySelector('.error-message').textContent = message;
+      dom.errorDisplay.classList.remove('hidden');
+    };
+
+    const clearError = () => {
+      dom.errorDisplay.classList.add('hidden');
+    };
+
+    const toggleLoader = (show) => {
+      dom.loader.classList.toggle('hidden', !show);
+      dom.searchBtn.disabled = show;
+      dom.searchBtn.innerHTML = show
+        ? '<i class="fas fa-circle-notch rotate mr-2"></i>Chargement...'
+        : '<i class="fas fa-search mr-2"></i>Rechercher';
+    };
+
+    const fetchWeather = async (city) => {
+      const url = `${config.BASE_URL}?q=${city}&appid=${config.API_KEY}&units=metric&lang=fr`;
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(response.status === 404 ? 'Ville non trouvée' : 'Erreur de serveur');
+      }
+      return await response.json();
+    };
+
+    const handleSearch = async (e) => {
+      e.preventDefault();
+      const city = dom.cityInput.value.trim();
+      if (!city) return;
+
+      try {
+        toggleLoader(true);
+        clearError();
+        const weatherData = await fetchWeather(city);
+        displayWeather(weatherData);
+      } catch (error) {
+        showError(error.message);
+      } finally {
+        toggleLoader(false);
+      }
+    };
+
+    const getLocation = () => {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          async (position) => {
+            try {
+              toggleLoader(true);
+              clearError();
+              const { latitude, longitude } = position.coords;
+              const url = `${config.BASE_URL}?lat=${latitude}&lon=${longitude}&appid=${config.API_KEY}&units=metric&lang=fr`;
+              const response = await fetch(url);
+              const data = await response.json();
+              displayWeather(data);
+              dom.cityInput.value = data.name;
+            } catch (error) {
+              showError("Impossible d'obtenir la météo pour votre position");
+            } finally {
+              toggleLoader(false);
+            }
+          },
+          (error) => {
+            showError("Géolocalisation refusée. Veuillez autoriser l'accès ou saisir une ville.");
+          }
+        );
+      } else {
+        showError("Votre navigateur ne supporte pas la géolocalisation");
+      }
+    };
+
+    dom.searchForm.addEventListener('submit', handleSearch);
+    dom.locationBtn.addEventListener('click', getLocation);
+
+    window.addEventListener('DOMContentLoaded', () => {
+      dom.cityInput.value = config.DEFAULT_CITY;
+      handleSearch({ preventDefault: () => {} });
+    });
+  </script>
+</body>
+</html>
